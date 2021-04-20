@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Cache-control" content="public" />
+    <title>Screen Recording</title>
+    <meta charset="UTF-8" />
+    <script
+        src="https://polyfill.io/v3/polyfill.min.js?features=default%2Ces2015%2Cblissfuljs%2Ces2016%2Ces2017%2Ces2018%2Ces2019%2Ces5%2Ces6%2Ces7%2CAbortController%2CArray.prototype.every%2CArray.from%2CArray.isArray%2CArray.of%2CArray.prototype.%40%40iterator%2CArray.prototype.copyWithin%2CArray.prototype.entries%2CArray.prototype.fill%2CArray.prototype.filter%2CArray.prototype.find%2CArray.prototype.findIndex%2CArray.prototype.flat%2CArray.prototype.flatMap%2CArray.prototype.forEach%2CArray.prototype.includes%2CArray.prototype.indexOf%2CArray.prototype.keys%2CArray.prototype.lastIndexOf%2CIntl"></script>
+    <script src="https://code.iconify.design/1/1.0.7/iconify.min.js"></script>
+    <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+    <!-- update the version number as needed -->
+    <script defer src="/__/firebase/5.9.3/firebase-app.js"></script>
+    <!-- include only the Firebase features as you need -->
+    <script defer src="/__/firebase/5.9.3/firebase-firestore.js"></script>
+    <!-- initialize the SDK after all desired features are loaded -->
+    <script defer src="/__/firebase/init.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+</head>
+
+<body>
+    <div style="display: flex;">
+        <div>
+            <div id="button">
+                <button class="mdc-button mdc-button--raised" id="cameraBtn">
+                    <i class="material-icons mdc-button__icon" aria-hidden="true"></i>
+                    <span class="mdc-button__label">Open camera & microphone</span>
+                </button>
+                <button class="mdc-button mdc-button--raised" disabled id="createBtn">
+                    <i class="material-icons mdc-button__icon" aria-hidden="true">group_add</i>
+                    <span class="mdc-button__label">Create room</span>
+                </button>
+                <button class="mdc-button mdc-button--raised" disabled id="joinBtn">
+                    <i class="material-icons mdc-button__icon" aria-hidden="true">group</i>
+                    <span class="mdc-button__label">Join room</span>
+                </button>
+                <button class="mdc-button mdc-button--raised" disabled id="hangupBtn">
+                    <i class="material-icons mdc-button__icon" aria-hidden="true">close</i>
+                    <span class="mdc-button__label">Hangup</span>
+                </button>
+
+                <button class="mdc-button mdc-button--raised" id="muteBtn">
+                    <!-- <i class="material-icons mdc-button__icon" aria-hidden="true">perm_mic</i> -->
+                    <span class="mdc-button__label">Mute/Unmute</span>
+                </button>
+                <!-- <button class="mdc-button mdc-button--raised" disabled id="unmuteBtn">
+                    <span class="mdc-button__label">Unmute</span>
+                </button> -->
+
+                <button class="mdc-button mdc-button--raised" id="offBtn">
+                    <span class="mdc-button__label">Camera ON/Off</span>
+                </button>
+
+                <!-- <button class="mdc-button mdc-button--raised" disabled id="onBtn">
+                    <span class="mdc-button__label">Camera ON</span>
+                </button> -->
+            </div>
+
+            <!-- <script>
+                // function stop(k) {
+                //     console.log('ddd', k)
+                //     video.srcObject.getTracks().forEach(t => t.kind == k && t.stop());
+                //     mediaStream.getAudioTracks()[0].enabled = false; // or false to mute it.
+                // }
+                console.log('ddd')
+                let stop = k => video.srcObject.getTracks().forEach(t => t.kind == k && t.stop());
+            </script> -->
+
+            <div id="videos">
+
+                <video id="localVideo" muted autoplay playsinline>
+                </video>
+                <video id="remoteVideo" autoplay playsinline></video>
+
+            </div>
+            <div class="mdc-dialog" id="room-dialog" role="alertdialog" aria-modal="true"
+                aria-labelledby="my-dialog-title" aria-describedby="my-dialog-content">
+                <div class="mdc-dialog__container">
+                    <div class="mdc-dialog__surface">
+                        <h2 class="mdc-dialog__title" id="my-dialog-title">Join room</h2>
+                        <div class="mdc-dialog__content" id="my-dialog-content">
+                            Enter ID for room to join:
+                            <div class="mdc-text-field">
+                                <input type="text" id="room-id" placeholder="Room ID" class="mdc-text-field__input">
+                                <!-- <label class="mdc-floating-label" for="my-text-field"></label> -->
+                                <div class="mdc-line-ripple"></div>
+                            </div>
+                        </div>
+                        <footer class="mdc-dialog__actions">
+                            <button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action="no">
+                                <span class="mdc-button__label">Cancel</span>
+                            </button>
+                            <button id="confirmJoinBtn" type="button" class="mdc-button mdc-dialog__button"
+                                data-mdc-dialog-action="yes">
+                                <span class="mdc-button__label">Join</span>
+                            </button>
+                        </footer>
+                    </div>
+                </div>
+                <div class="mdc-dialog__scrim"></div>
+            </div>
+        </div>
+        <!-- ---------------------------------------- -->
+
+        <div style="margin-right: 10%">
+            <div>
+                <span id="currentRoom"></span>
+            </div>
+            <video id="stream-video"></video>
+            <div class="buttons">
+                <button id="start">
+                    <span class="iconify" data-icon="fluent:record-16-regular"></span>
+                </button>
+                <button id="stop" disabled>
+                    <span class="iconify" data-icon="fluent:stop-16-filled"></span>
+                </button>
+            </div>
+            <h3>Audio source:</h3>
+            <select name="micsource" id="micsource">
+                <optgroup label="Audio source:"></optgroup>
+                <option>Microphone</option>
+                <option>System</option>
+                <option>Both</option>
+            </select>
+            <h3>Video source:</h3>
+            <select name="videosource" id="videosource">
+                <optgroup label="Video source:"></optgroup>
+                <option>Screen</option>
+                <option>Webcam</option>
+            </select>
+            <h3>Output format</h3>
+            <select name="videoformat" id="videoformat">
+                <option value="mkv" mime-type="video/x-matroska;codecs=avc1,opus">.mkv (Matroska Video)</option>
+                <option value="webm" mime-type="video/webm">.webm (webMethods Inc.)</option>
+                <option value="flv" mime-type="video/x-flv">.flv (Flash video)</option>
+                <option value="mp4" mime-type="video/mp4">.mp4 (MPEG-4)</option>
+            </select>
+            <h3>Dimensions:</h3>
+            <div class="inputs">
+                <input id="video-width" type="text" placeholder="Width" value="4096" />x<input id="video-height"
+                    type="text" value="2160" placeholder="Height" />
+            </div>
+            <div class="output">
+                <h1>Output</h1>
+                <video id="video" controls></video>
+                <button id="download">Download</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+<i>
+    <center>By --Explosion--</center>
+</i>
+
+</html>
+<style>
+    @import url("https://fonts.googleapis.com/css2?family=Work+Sans:wght@300&display=swap");
+
+    summary h2 {
+        display: inline;
+    }
+
+    * {
+        font-family: "Work Sans", sans-serif;
+    }
+
+    i center {
+        position: absolute;
+        top: 100vh;
+        padding-bottom: 5px;
+        left: 10px;
+    }
+
+    #current {
+        width: 300px;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        border-radius: 10px;
+        height: 200px;
+        object-fit: cover;
+    }
+
+    input[type="text"] {
+        display: inline-block;
+        width: 50px;
+        padding: 3px;
+        margin: 3px;
+    }
+
+    input,
+    select {
+        border-radius: 3px;
+        border: 1px solid lightgrey;
+        transition: box-shadow 0.3s ease;
+    }
+
+    input:focus,
+    select:focus {
+        box-shadow: 0 0 0 5px #0001;
+    }
+
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: fit-content;
+        min-height: 100vh;
+        overflow: Scroll;
+        flex-direction: column;
+    }
+
+    .buttons {
+        display: flex;
+        flex-direction: row;
+    }
+
+    select {
+        padding: 5px;
+        border: 1px solid lightgrey;
+        width: 250px;
+    }
+
+    button {
+        cursor: pointer;
+        border: 1px solid lightgrey;
+        border-radius: 10px;
+        margin: 5px;
+        font-size: 100px;
+        background: transparent;
+    }
+
+    #video {
+        margin: 5px;
+        border-radius: 10px;
+        border: 1px solid lightgrey;
+        height: 70vh;
+        width: 75vw;
+    }
+
+    .output h1 {
+        margin: 0;
+        margin-bottom: 3px;
+        text-decoration: underline;
+    }
+
+    .output button {
+        cursor: pointer;
+        all: initial;
+        background: lightblue;
+        color: #333;
+        padding: 3px;
+        border-radius: 3px;
+        border: none;
+        margin-bottom: 5px;
+    }
+
+    .output {
+        display: none !important;
+        padding: 20px;
+        border-radius: 10px;
+        width: fit-content;
+        height: fit-content;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 3px 3px 10px #0003;
+        background: white;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    /*   .output::before {
+    content: "";
+    position: fixed;
+    background-color: white;
+    height: 100vh;
+    width: 100vw;
+    padding: 0;
+    margin: 0;
+  } */
+    iframe {
+        display: none !important;
+    }
+
+    #stream-video {
+        display: none !important;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 100;
+        height: 200px;
+        width: 300px;
+    }
+</style>
+<script>
+
+    const start = document.getElementById("start");
+    const stopbtn = document.getElementById("stop");
+    const video = document.getElementById("video");
+    let audiosource, videosource, format, mime_type;
+    window.addEventListener("beforeunload", function (e) {
+        e.preventDefault();
+        e.returnValue = "Are you sure you want to leave? Changes won't be saved.";
+        return "Are you sure you want to leave? Changes won't be saved.";
+    });
+    (function () {
+        document.getElementById("micsource").selectedIndex = localStorage.getItem(
+            "audiosource"
+        );
+        document.getElementById("videosource").selectedIndex = localStorage.getItem(
+            "videosource"
+        );
+        document.getElementById("videoformat").selectedIndex = localStorage.getItem(
+            "videoformat"
+        );
+    })();
+    setInterval(() => {
+        window.localStorage.setItem(
+            "audiosource",
+            document.getElementById("micsource").selectedIndex
+        );
+        window.localStorage.setItem(
+            "videosource",
+            document.getElementById("videosource").selectedIndex
+        );
+        window.localStorage.setItem(
+            "videoformat",
+            document.getElementById("videoformat").selectedIndex
+        );
+        audiosource =
+            document
+                .getElementById("micsource")
+                .options[
+                document.getElementById("micsource").selectedIndex
+            ].innerText.toLowerCase() || "system";
+        videosource =
+            document
+                .getElementById("videosource")
+                .options[
+                document.getElementById("videosource").selectedIndex
+            ].innerText.toLowerCase() || "webcam";
+        format =
+            document
+                .getElementById("videoformat")
+                .options[
+                document.getElementById("videoformat").selectedIndex
+            ].value.toLowerCase() || "mkv";
+        mime_type =
+            document
+                .getElementById("videoformat")
+                .options[
+                document.getElementById("videoformat").selectedIndex
+            ].getAttribute("mime-type")
+                .toLowerCase() || "video/x-matroska;codecs=avc1,opus";
+    }, 10);
+    let recorder, stream, systemstream, micstream, videotracks, titleinterval;
+    const downloadbtn = document.querySelector(".output button");
+    async function startRecording() {
+        // Specify options
+        let audio = {
+            echoCancellation: false,
+            googAutoGainControl: false,
+            autoGainControl: false,
+            noiseSuppression: false
+        };
+        let videooptions = {
+            width: { ideal: 4096 },
+            height: { ideal: 2160 },
+            frameRate: { ideal: 60 }
+        };
+        // Custom videowidth if neded
+        let videowidth = {
+            ideal: document.getElementById("video-width").value
+        } || { ideal: 4096 };
+        let videoheight = {
+            ideal: document.getElementById("video-height").value
+        } || { ideal: 2160 };
+        // Set the video width and height in the videooptions object
+        videooptions.width = videowidth;
+        videooptions.height = videoheight;
+        // Get microphone and video depending on what modes the user selected (No screenshare if the user only is doing mic and webcam)
+        if (audiosource === "both" || audiosource === "microphone") {
+            micstream = await navigator.mediaDevices.getUserMedia({
+                video: false,
+                audio: audio
+            });
+        }
+        // Try-catch in case the user cancels the prompt for stuff (Or there's an unrelated error)
+        try {
+            if (
+                videosource === "screen" ||
+                audiosource === "both" ||
+                audiosource === "system"
+            ) {
+                systemstream = await navigator.mediaDevices.getDisplayMedia({
+                    video: videooptions,
+                    audio: audio
+                });
+            }
+
+            if (videosource === "webcam") {
+                webcamstream = await navigator.mediaDevices.getUserMedia({
+                    video: videooptions,
+                    audio: false
+                });
+            }
+
+            var audiotracks;
+            if (audiosource === "microphone") {
+                audiotracks = micstream.getAudioTracks();
+            }
+            if (audiosource === "both") {
+                audiotracks = merge(micstream, systemstream);
+            }
+            if (audiosource === "system") {
+                audiotracks = systemstream.getAudioTracks();
+            }
+            if (videosource === "webcam") {
+                videotracks = webcamstream.getVideoTracks();
+            } else {
+                videotracks = systemstream.getVideoTracks();
+            }
+            var outputTracks = [];
+            outputTracks = outputTracks.concat(audiotracks);
+            outputTracks = outputTracks.concat(videotracks);
+            //Use webkitMediaStream for chrome, and MediaStream in other browsers
+            if ("webkitMediaStream" in window) {
+                stream = new webkitMediaStream(outputTracks);
+            } else if ("MediaStream" in window) {
+                stream = new MediaStream(outputTracks);
+            } else {
+                // If the browser dosen't support either than it probably won't work, but let the user decide.
+                if (
+                    confirm(
+                        "Sorry but your browser may not be supported, would you like to continue?"
+                    )
+                ) {
+                    stream = new MediaStream(outputTracks);
+                } else {
+                    // Reload
+                    location.reload();
+                }
+            }
+            const outputvid = document.getElementById("stream-video");
+            outputvid.srcObject = stream;
+            outputvid.muted = true;
+            outputvid.autoplay = true;
+            outputvid.onloadedmetadata = () => {
+                outputvid.style.display = "block";
+            };
+        } catch (e) {
+            // Error, alert about denied permissions
+            alert(
+                "You denied permission to record or screenshare, please click the lock icon next to the website adress and change 'video' and 'audio' to allow. Reloading the page..."
+            );
+            // Alert actual error in case it's something else (e.stack gives line numbers too.)
+            alert(e.stack);
+            location.reload();
+        }
+        // Start recording!
+        recorder = new MediaRecorder(stream);
+        titleinterval = setInterval(() => {
+            // The 3 dots in the title
+            document.title = `Recording${".".repeat((Date.now() / 300) % 3)}`;
+        }, 300);
+        stream.getVideoTracks().forEach((track) => {
+            track.onended = () => {
+                stopstream();
+            };
+        });
+        if (micstream) {
+            micstream.getVideoTracks().forEach((track) => {
+                track.onended = () => {
+                    stopstream();
+                };
+            });
+        }
+        if (systemstream) {
+            systemstream.getVideoTracks().forEach((track) => {
+                track.onended = () => {
+                    stopstream();
+                };
+            });
+        }
+        const chunks = [];
+        var completeBlob;
+        recorder.ondataavailable = (e) => chunks.push(e.data);
+
+        recorder.onstop = (e) => {
+            stream.getTracks().forEach((track) => {
+                track.stop();
+            });
+            start.setAttribute("disabled", true);
+            stopbtn.removeAttribute("disabled");
+            completeBlob = new Blob(chunks, {
+                type: mime_type
+            });
+            const url = URL.createObjectURL(completeBlob);
+            video.src = url;
+            download(url);
+            document.querySelector(".output").style.display = "flex";
+            document.querySelector("#stream-video").style.display = "none";
+        };
+        downloadbtn.onclick = () => {
+            download(URL.createObjectURL(completeBlob));
+        };
+        recorder.start();
+    }
+
+    start.addEventListener("click", () => {
+        start.setAttribute("disabled", true);
+        stopbtn.removeAttribute("disabled");
+
+        startRecording();
+    });
+
+    stopbtn.addEventListener("click", () => {
+
+        stopbtn.setAttribute("disabled", true);
+        start.removeAttribute("disabled");
+
+        stopstream();
+    });
+    function stopstream() {
+        recorder.stop();
+        clearInterval(titleinterval);
+        document.title = "Output | Screen recorder";
+    }
+    function download(url) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Screen Recording.${format}`;
+        document.body.appendChild(link);
+        link.dispatchEvent(
+            new MouseEvent("click", {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            })
+        );
+        document.body.removeChild(link);
+    }
+    const merge = (desktopStream, voiceStream) => {
+        const context = new AudioContext();
+        const source1 = context.createMediaStreamSource(desktopStream);
+        const source2 = context.createMediaStreamSource(voiceStream);
+        const destination = context.createMediaStreamDestination();
+
+        const desktopGain = context.createGain();
+        const voiceGain = context.createGain();
+
+        desktopGain.gain.value = 0.7;
+        voiceGain.gain.value = 0.7;
+
+        source1.connect(desktopGain).connect(destination);
+        source2.connect(voiceGain).connect(destination);
+
+        return destination.stream.getTracks();
+    };
+    function browser() {
+        var isOpera =
+            (!!window.opr && !!opr.addons) ||
+            !!window.opera ||
+            navigator.userAgent.indexOf(" OPR/") >= 0;
+        var isFirefox = typeof InstallTrigger !== "undefined";
+        var isSafari =
+            /constructor/i.test(window.HTMLElement) ||
+            (function (p) {
+                return p.toString() === "[object SafariRemoteNotification]";
+            })(
+                !window["safari"] ||
+                (typeof safari !== "undefined" && window["safari"].pushNotification)
+            );
+        var isIE = /*@cc_on!@*/ false || !!document.documentMode;
+        var isEdge = !isIE && !!window.StyleMedia;
+        var isChrome =
+            !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
+        var isEdgeChromium = isChrome && navigator.userAgent.indexOf("Edg") != -1;
+        var isBlink = (isChrome || isOpera) && !!window.CSS;
+        if (isOpera) {
+            return "Opera";
+        }
+        if (isFirefox) {
+            return "Firefox";
+        }
+        if (isSafari) {
+            return "Safari";
+        }
+        if (isEdge) {
+            return "Edge";
+        }
+        if (isIE) {
+            return "Internet Explorer";
+        }
+        if (isChrome) {
+            return "Chrome";
+        }
+        if (isEdgeChromium) {
+            return "Edge Chromium";
+        }
+        if (isBlink) {
+            return "Blink";
+        }
+    }
+</script>
