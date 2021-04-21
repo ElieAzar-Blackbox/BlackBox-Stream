@@ -14,6 +14,7 @@ const configuration = {
 
 let peerConnection = null;
 let localStream = null;
+let currentPeer = null;
 let remoteStream = null;
 let roomDialog = null;
 let roomId = null;
@@ -26,6 +27,9 @@ function init() {
 
   document.querySelector('#offBtn').addEventListener('click', stopCamera);
   // document.querySelector('#onBtn').addEventListener('click', onCamera);
+
+  document.querySelector('#shareScreen').addEventListener('click', shareScreen);
+  document.querySelector('#tes').addEventListener('click', tes);
 
   document.querySelector('#hangupBtn').addEventListener('click', hangUp);
   document.querySelector('#createBtn').addEventListener('click', createRoom);
@@ -207,6 +211,25 @@ async function openUserMedia(e) {
   document.querySelector('#joinBtn').disabled = false;
   document.querySelector('#createBtn').disabled = false;
   document.querySelector('#hangupBtn').disabled = false;
+}
+function tes(e) {
+  console.log('elie')
+}
+
+async function shareScreen(e) {
+
+  console.log('displayyyyyMEDiaaaa')
+
+  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+  // const audio = await navigator.mediaDevices.getUserMedia({ audio: true });
+  // return new MediaStream([audio.getTracks()[0], stream.getTracks()[0]]);
+  document.querySelector('#localVideo').srcObject = stream;
+  // console.log(stream)
+  localStream = stream;
+  remoteStream = new MediaStream();
+  document.querySelector('#remoteVideo').srcObject = remoteStream;
+
+  console.log('Stream:', document.querySelector('#localVideo').srcObject);
 }
 
 
